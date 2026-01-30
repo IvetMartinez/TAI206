@@ -49,7 +49,13 @@ async def consultaUsuarios(id:int):
 
 @app.get("/v1/usuarios_op", tags=['Parametro opcional'])
 async def consultaOp(id:Optional[int]=None):
-    await asyncio.sleep(5)
+    await asyncio.sleep(3)
     if id is not None:
-        return {"Usuario encontrado":id}
-
+        for usuario in usuarios:
+            if usuario["id"]== id:
+                return {"Usuario encontrado":id,
+                        "Usuario":usuario}
+            
+        return {"Usuario  no encontrado"}
+    else:
+        return{"AVISO": "No se proporciono id"}
