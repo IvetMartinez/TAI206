@@ -1,7 +1,7 @@
 #Práctica 1
 #importaciones
 from typing import Optional
-from fastapi import FastAPI
+from fastapi import FastAPI, status, HTTPException   
 import asyncio   
 
 #Inicialización
@@ -43,11 +43,11 @@ async def calificaciones():
 
 #Definir parametros obloigatorios mediante las llaves
 
-@app.get("/v1/usuarios/{id}", tags=['Parametro obligatorio'])
+@app.get("/v1/parametroO/{id}", tags=['Parametro obligatorio'])
 async def consultaUsuarios(id:int): 
     return {"Usuario encontrado":id}
 
-@app.get("/v1/usuarios_op", tags=['Parametro opcional'])
+@app.get("/v1/parametroOp", tags=['Parametro opcional'])
 async def consultaOp(id:Optional[int]=None):
     await asyncio.sleep(3)
     if id is not None:
@@ -59,3 +59,32 @@ async def consultaOp(id:Optional[int]=None):
         return {"Usuario  no encontrado"}
     else:
         return{"AVISO": "No se proporciono id"}
+    
+    
+    
+    #seguimiento de la practica 3 
+    
+@app.get("/v1/usuarios", tags=['CRUD usuarios'])
+async def consultaUsuarios():
+    return{
+        "status":"200",
+        "total": len(usuarios),
+        "data":usuarios
+    }
+    
+    
+@app.post("/v1/usuarios", tags=['CRUD usuarios'])
+async def agregarUsuarios(usuario:dict):
+    for usr in usuarios:
+        if usr["id"] == usuario.get ("id") :
+            raise HTTPException(
+                status_code=400,
+                detail="El id ya existe"
+            )
+            
+    usuarios.append(usuario)
+    return{
+        "mensaje" : "Usuario Agregado",
+        "datos" : usuario,
+        "status" : "200"
+    }
