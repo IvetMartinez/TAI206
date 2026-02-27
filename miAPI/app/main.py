@@ -3,6 +3,8 @@
 from typing import Optional
 from fastapi import FastAPI, status, HTTPException   
 import asyncio   
+from pydantic import BaseModel,Field
+
 
 #Inicialización
 app= FastAPI(
@@ -19,6 +21,12 @@ usuarios=[
     {"id":2,"nombre":"Axel", "edad":35},
     {"id":3,"nombre":"Ivi", "edad":20},
 ]
+
+#Modelo de validación Pydantic
+class UsuarioBase(BaseModel):
+    id:int = Field(...,gt=0, desription="Identificador de usuarios",example="1")
+    nombre:str = Field(...,min_length=30, max_length=50, description="Nombre del usuario")
+    edad:int = Field(...,ge=0,le=121, description="Edad válida entre 0 y 121")
 
 
 #Endpoints 
@@ -74,9 +82,9 @@ async def consultaUsuarios():
     
     
 @app.post("/v1/usuarios", tags=['CRUD usuarios'])
-async def agregarUsuarios(usuario:dict):
+async def agregarUsuarios(usuario:UsuarioBase):
     for usr in usuarios:
-        if usr["id"] == usuario.get ("id") :
+        if usr["id"] == usuario.id :
             raise HTTPException(
                 status_code=400,
                 detail="El id ya existe"
@@ -88,3 +96,37 @@ async def agregarUsuarios(usuario:dict):
         "datos" : usuario,
         "status" : "200"
     }
+    
+@app.put("/v1/usuarios/{id}", tags=['CRUD usuarios'])
+async def actualizarUsuario(id: int, usuario: dict):
+
+    for usr in usuarios:
+        if usr["id"] == id:
+            usr.update(usuario)
+            return {
+                "mensaje": "Usuario actualizado",
+                "datos": usr,
+                "status": "200"
+            }
+
+    raise HTTPException(
+        status_code=404,
+        detail="Usuario no encontrado"
+    )
+
+@app.delete("/v1/usuarios/{id}", tags=['CRUD usuarios'])
+async def eliminarUsuario(id: int):
+
+    for usr in usuarios:
+        if usr["id"] == id:
+            usuarios.remove(usr)
+            return {
+                "mensaje": "Usuario eliminado",
+                "datos": usr,
+                "status": "200"
+            }
+
+    raise HTTPException(
+        status_code=404,
+        detail="Usuario no encontrado"
+    )
