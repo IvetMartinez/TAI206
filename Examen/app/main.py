@@ -5,6 +5,7 @@ import asyncio
 from pydantic import BaseModel,Field
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 import secrets
+from typing import List
 
 app= FastAPI(
 title = 'API de Sistema de citas',
@@ -15,8 +16,18 @@ citas=[
     {"id":2,"nombre":"Axel", "anio":2026,"estado":"confirmada"},
 ]
 
-security = HTTPBasic()
+class Usuario(BaseModel):
+    nombre:str = Field(...,min_length=30, max_length=50, description="Nombre del usuario")
+    
+    
+class Estado(BaseModel):
+    id:int = Field(..., gt=0)
+    cita_id: int
+    usuario: Usuario
+    
+estado: List[dict] = []
 
+security = HTTPBasic()
 
 
 #Modelo de validación Pydantic
@@ -58,19 +69,12 @@ async def agregarCitas(cita:CitaBase):
         "status" : "200"
     }
     
-#LISTAR CITAS
-@app.get("/v1/citas", tags=['CRUD citas'])
-async def consultaCitas():
-    return{
-        "status":"200",
-        "total": len(citas),
-        "data":citas
-    }
-    
+
 #CONSULTAR POR ID
 @app.get("/v1/citas/{id}", tags=['Parametro obligatorio'])
-async def consultaCitas(id:int): 
+async def consultaCitas(): 
     return {"Cita encontrada":id}
+
 
 #CONFIRMAR CITAS
 @app.put("/v1/confirmar/{id}")
@@ -83,11 +87,11 @@ def confirmarCita(id: int):
                     detail="La cita esta confirmada"
                 )
             l["estado"] = "disponible"
-            return {"mensaje": "Libro devuelto correctamente"}
+            return {"mensaje": "Cita confirmada correctamente"}
 
     raise HTTPException(
         status_code=404,
-        detail="Libro no encontrado"
+        detail="Cita no encontrada"
     )
 
 #ACTUALIZAR
@@ -108,6 +112,19 @@ async def actualizarCita(id: int, cita: dict):
         detail="Cita no encontrada"
     )
 
+
+#LISTAR CITAS
+@app.get("/v1/citas/", tags=['CRUD citas'],status_code=status.HTTP_200_OK)
+async def consultaCitas(id: int, usuarioAuth: str = Depends(verificar_peticion)):
+    
+    
+    return{
+        "status":"200",
+        "total": len(citas),
+        "data":citas
+    }
+    
+    
 #DELETE
 @app.delete("/v1/citas/{id}", tags=['CRUD citas'], status_code=status.HTTP_200_OK)
 async def eliminarCita(id: int, usuarioAuth: str = Depends(verificar_peticion)):
