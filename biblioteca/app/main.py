@@ -96,14 +96,14 @@ def devolver_libro(libro_id: int):
             if l["estado"] == "disponible":
                 raise HTTPException(
                     status_code=409,
-                    detail="El libro no está prestado"
+                    detail="La cita no está confirmada"
                 )
-            l["estado"] = "disponible"
+            l["estado"] = "dis"
             return {"mensaje": "Libro devuelto correctamente"}
 
     raise HTTPException(
         status_code=404,
-        detail="Libro no encontrado"
+        detail="Cita no encontrada"
     )
 
 @app.delete("/v1/prestamos/{libro_id}")

@@ -1,0 +1,10 @@
+
+#Este archivo orquesta el contenedor: red, puertos, volumnees nombres
+services:
+  api:
+    build: .
+    container_name: server_fastapi_prueba
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./app:/app/app

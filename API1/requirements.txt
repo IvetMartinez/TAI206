@@ -1,0 +1,7 @@
+
+#Definición de librerias 
+fastapi
+uvicorn [standard]
+python-multipart
+python-jose
+passlib[bcrypt]

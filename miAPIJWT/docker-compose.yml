@@ -1,7 +1,6 @@
 services:
   api:
     build: .
-    container_name: server_fastapi
     ports:
       - "8000:8000"
     volumes:

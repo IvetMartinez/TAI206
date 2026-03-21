@@ -1,4 +1,2 @@
 fastapi
-uvicorn[standard]
-python-jose[cryptography]   # Para JWT
-passlib[bcrypt]             # Para hashear contraseñas
+uvicorn [standard]

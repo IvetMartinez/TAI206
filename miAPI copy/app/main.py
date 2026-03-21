@@ -2,14 +2,10 @@
 #importaciones
 from typing import Optional
 from fastapi import FastAPI, status, HTTPException,Depends
-import asyncio
+import asyncio   
 from pydantic import BaseModel,Field
-from datetime import datetime, timedelta
-from jose import JWTError, jwt
-from passlib.context import CryptContext
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-
-
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
+import secrets
 
 
 #Inicialización
@@ -20,75 +16,41 @@ title = 'Mi primer API',
 description='Ive Martinez',
 version='1.0'
 )
-
-
-# Configuración JWT
-SECRET_KEY = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
-
-# Contexto de hashing
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-# Esquema OAuth2
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-
-
 #Práctica 2: Simulación de Base de datos
+
 usuarios=[
     {"id":1,"nombre":"Ive", "edad":22},
     {"id":2,"nombre":"Axel", "edad":35},
     {"id":3,"nombre":"Ivi", "edad":20},
 ]
+#Seguridad con HTTP Basic
+security = HTTPBasic()
+
 
 #Modelo de validación Pydantic
 class UsuarioBase(BaseModel):
-    
     id:int = Field(...,gt=0, desription="Identificador de usuarios",example="1")
     nombre:str = Field(...,min_length=30, max_length=50, description="Nombre del usuario")
     edad:int = Field(...,ge=0,le=121, description="Edad válida entre 0 y 121")
 
 
-# Funciones de autenticación
-#Verificar contraseña
-def verify_password(plain_password, hashed_password):
-    return pwd_context.verify(plain_password, hashed_password)
 
-#Verificar usuario
-def authenticate_user(usuarios_db, nombre: str, password: str):
-    user = next((u for u in usuarios_db if u["nombre"] == nombre), None)
-    if not user or not verify_password(password, user["password"]):
-        return False
-    return user
 
-#Creación de token
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
-    to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.utcnow() + expires_delta
-    else:
-        expire = datetime.utcnow() + timedelta(minutes=15)
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
+def verificar_peticion(credentials: HTTPBasicCredentials=Depends(security)):
+    usuarioAuth=secrets.compare_digest(credentials.username, "admin")
+    contraAuth=secrets.compare_digest(credentials.password, "123456789")
+    
+    if not(usuarioAuth and contraAuth):
+        raise HTTPException(
+                status_code= status.HTTP_401_UNAUTHORIZED,
+                detail="Credenciales no validas",
+            )
+            
+            
+    return credentials.username
+    
+    
 
-async def get_current_user(token: str = Depends(oauth2_scheme)):
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="No se pudieron validar las credenciales",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        nombre: str = payload.get("sub")
-        if nombre is None:
-            raise credentials_exception
-    except JWTError:
-        raise credentials_exception
-    user = next((u for u in usuarios if u["nombre"] == nombre), None)
-    if user is None:
-        raise credentials_exception
-    return user
 
 
 #Endpoints
@@ -142,7 +104,7 @@ async def consultaUsuarios():
         "data":usuarios
     }
     
-# Endpoint de login
+    
 @app.post("/v1/usuarios", tags=['CRUD usuarios'])
 async def agregarUsuarios(usuario:UsuarioBase):
     for usr in usuarios:
@@ -159,9 +121,9 @@ async def agregarUsuarios(usuario:UsuarioBase):
         "status" : "200"
     }
     
-# Endpoints protegidos
 @app.put("/v1/usuarios/{id}", tags=['CRUD usuarios'])
-async def actualizarUsuario(id: int, usuario: dict, current_user: dict = Depends(get_current_user)):
+async def actualizarUsuario(id: int, usuario: dict):
+
     for usr in usuarios:
         if usr["id"] == id:
             usr.update(usuario)
@@ -176,13 +138,13 @@ async def actualizarUsuario(id: int, usuario: dict, current_user: dict = Depends
         detail="Usuario no encontrado"
     )
 
-@app.delete("/v1/usuarios/{id}", tags=['CRUD usuarios'])
-async def eliminarUsuario(id: int, current_user: dict = Depends(get_current_user)):
+@app.delete("/v1/usuarios/{id}", tags=['CRUD usuarios'], status_code=status.HTTP_200_OK)
+async def eliminarUsuario(id: int, usuarioAuth: str = Depends(verificar_peticion)):
     for usr in usuarios:
         if usr["id"] == id:
             usuarios.remove(usr)
             return {
-                "mensaje": "Usuario eliminado correctamente"
+                "mensaje": f"Usuario eliminado correctamente por {usuarioAuth}"
             }
 
     raise HTTPException(
