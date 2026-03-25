@@ -1,6 +1,5 @@
-#*************************************************************
+
 # Usuarios CRUD
-#*************************************************************
 #importaciones 
 from fastapi import status, HTTPException, Depends, APIRouter
 from app.models.usuario import UsuarioBase
@@ -20,6 +19,11 @@ router= APIRouter(
 )
 
 #Endpoints
+
+
+
+#GET 
+
 @router.get("/")
 async def consultaUsuarios(db:Session = Depends(get_db)):  #9
     
@@ -30,9 +34,25 @@ async def consultaUsuarios(db:Session = Depends(get_db)):  #9
         "data":usuarios_db
     }
     
+#GET ID
+
+@router.get("/{id}", )
+async def obtenerUsuario(id: int, db: Session = Depends(get_db)):
     
+    usuario = db.query(usuarioDB).filter(usuarioDB.id == id).first()
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    return {
+        "status": "200",
+        "data": usuario
+    }
+    
+    
+#POST
+
 @router.post("/", status_code=status.HTTP_201_CREATED)
-async def agregarUsuarios(usuarioP:UsuarioBase, db:Session=Depends(get_db)): #Implementamos validadcion pydantic
+async def agregarUsuarios(usuarioP:UsuarioBase, db:Session=Depends(get_db)): #Implementamos validacion pydantic
     
     nuevoUsuario = usuarioDB(nombre= usuarioP.nombre, edad=usuarioP.edad)
     
@@ -44,6 +64,8 @@ async def agregarUsuarios(usuarioP:UsuarioBase, db:Session=Depends(get_db)): #Im
         "mensaje" : "Usuario Agregado",
         "datos" : nuevoUsuario
     }
+
+#PUT
     
 @router.put("/{id}", status_code=status.HTTP_200_OK)
 async def actualizarUsuario(id: int, usuario: dict):
@@ -76,4 +98,16 @@ async def eliminarUsuario(id: int, usuarioAuth: str= Depends(verificar_Peticion)
         status_code=404,
         detail="Usuario no encontrado para eliminar"
     )
-  
+  async def eliminarUsuario(id: int, db: Session = Depends(get_db), usuarioAuth: str = Depends(verificar_Peticion)):
+
+    usuario = db.query(usuarioDB).filter(usuarioDB.id == id).first()
+
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    db.delete(usuario)
+    db.commit()
+
+    return {
+        "mensaje": f"Usuario eliminado correctamente por {usuarioAuth}"
+    }
